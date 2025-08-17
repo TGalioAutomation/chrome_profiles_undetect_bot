@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Chrome Profiles Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Status Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title" id="total-profiles">0</h4>
+                        <p class="card-text">Total Profiles</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title" id="active-browsers">0</h4>
+                        <p class="card-text">Active Browsers</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chrome fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title" id="running-sessions">0</h4>
+                        <p class="card-text">Running Sessions</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-play-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">Bot Bypass</h4>
+                        <p class="card-text">Active</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shield-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('profiles_page') }}" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="fas fa-plus"></i> Create New Profile
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-success btn-lg w-100 mb-3" onclick="startAllBrowsers()">
+                            <i class="fas fa-play"></i> Start All Browsers
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-warning btn-lg w-100 mb-3" onclick="stopAllBrowsers()">
+                            <i class="fas fa-stop"></i> Stop All Browsers
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-info btn-lg w-100 mb-3" onclick="refreshStatus()">
+                            <i class="fas fa-sync"></i> Refresh Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Profiles -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list"></i> Active Profiles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="active-profiles-table">
+                        <thead>
+                            <tr>
+                                <th>Profile Name</th>
+                                <th>Status</th>
+                                <th>User Agent</th>
+                                <th>Proxy</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active-profiles-tbody">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dashboard specific JavaScript
+    let profiles = [];
+    
+    // Load dashboard data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDashboardData();
+        
+        // Set up auto-refresh every 30 seconds
+        setInterval(loadDashboardData, 30000);
+    });
+    
+    // Socket.IO event listeners
+    socket.on('profiles_updated', function() {
+        loadDashboardData();
+    });
+    
+    socket.on('browser_started', function(data) {
+        showAlert(`Browser started for profile: ${data.profile}`, 'success');
+        loadDashboardData();
+    });
+    
+    socket.on('browser_stopped', function(data) {
+        showAlert(`Browser stopped for profile: ${data.profile}`, 'info');
+        loadDashboardData();
+    });
+    
+    socket.on('browser_error', function(data) {
+        showAlert(`Browser error for profile ${data.profile}: ${data.error}`, 'danger');
+        loadDashboardData();
+    });
+    
+    async function loadDashboardData() {
+        try {
+            // Load system status
+            const statusResponse = await fetch('/api/status');
+            const statusData = await statusResponse.json();
+            
+            if (statusData.success) {
+                updateStatusCards(statusData.status);
+            }
+            
+            // Load profiles
+            const profilesResponse = await fetch('/api/profiles');
+            const profilesData = await profilesResponse.json();
+            
+            if (profilesData.success) {
+                profiles = profilesData.profiles;
+                updateActiveProfilesTable();
+            }
+            
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+            showAlert('Error loading dashboard data', 'danger');
+        }
+    }
+    
+    function updateStatusCards(status) {
+        document.getElementById('total-profiles').textContent = status.total_profiles;
+        document.getElementById('active-browsers').textContent = status.active_browsers;
+        document.getElementById('running-sessions').textContent = status.active_browsers;
+    }
+    
+    function updateActiveProfilesTable() {
+        const tbody = document.getElementById('active-profiles-tbody');
+        
+        if (profiles.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No profiles found. <a href="${window.location.origin}/profiles">Create your first profile</a>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        const activeProfiles = profiles.filter(p => p.is_running);
+        
+        if (activeProfiles.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        No active browsers. Start a browser from the profiles page.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = activeProfiles.map(profile => `
+            <tr>
+                <td>
+                    <strong>${profile.display_name}</strong>
+                    <br><small class="text-muted">${profile.name}</small>
+                </td>
+                <td>
+                    <span class="badge bg-success">
+                        <i class="fas fa-play"></i> Running
+                    </span>
+                </td>
+                <td>
+                    <small>${profile.user_agent.substring(0, 50)}...</small>
+                </td>
+                <td>
+                    ${profile.proxy ? `<span class="badge bg-info">${profile.proxy}</span>` : '<span class="text-muted">No proxy</span>'}
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="stopBrowser('${profile.name}')">
+                        <i class="fas fa-stop"></i> Stop
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="navigateBrowser('${profile.name}')">
+                        <i class="fas fa-external-link-alt"></i> Navigate
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    async function stopBrowser(profileName) {
+        try {
+            const response = await fetch(`/api/profiles/${profileName}/stop`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.error, 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Error stopping browser:', error);
+            showAlert('Error stopping browser', 'danger');
+        }
+    }
+    
+    function navigateBrowser(profileName) {
+        const url = prompt('Enter URL to navigate to:');
+        if (url) {
+            navigateToUrl(profileName, url);
+        }
+    }
+    
+    async function navigateToUrl(profileName, url) {
+        try {
+            const response = await fetch(`/api/profiles/${profileName}/navigate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.error, 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Error navigating browser:', error);
+            showAlert('Error navigating browser', 'danger');
+        }
+    }
+    
+    function refreshStatus() {
+        loadDashboardData();
+        showAlert('Status refreshed', 'info');
+    }
+    
+    async function startAllBrowsers() {
+        if (confirm('Are you sure you want to start all browsers? This may consume significant system resources.')) {
+            for (const profile of profiles) {
+                if (!profile.is_running) {
+                    try {
+                        await fetch(`/api/profiles/${profile.name}/start`, { method: 'POST' });
+                    } catch (error) {
+                        console.error(`Error starting browser for ${profile.name}:`, error);
+                    }
+                }
+            }
+            showAlert('Starting all browsers...', 'info');
+        }
+    }
+    
+    async function stopAllBrowsers() {
+        if (confirm('Are you sure you want to stop all browsers?')) {
+            for (const profile of profiles) {
+                if (profile.is_running) {
+                    try {
+                        await fetch(`/api/profiles/${profile.name}/stop`, { method: 'POST' });
+                    } catch (error) {
+                        console.error(`Error stopping browser for ${profile.name}:`, error);
+                    }
+                }
+            }
+            showAlert('Stopping all browsers...', 'info');
+        }
+    }
+</script>
+{% endblock %}

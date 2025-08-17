@@ -1,0 +1,2151 @@
+{% extends "base.html" %}
+
+{% block title %}Profiles - Chrome Profiles Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-users"></i> Chrome Profiles
+            </h1>
+            <div class="btn-group">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createProfileModal">
+                    <i class="fas fa-plus"></i> Create New Profile
+                </button>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importProfileModal">
+                    <i class="fas fa-download"></i> Import Existing Profile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profiles Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> All Profiles
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-success" onclick="autoArrangeRunningBrowsers()" title="Auto arrange running browser windows">
+                            <i class="fas fa-th"></i> Auto Arrange
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="showLayoutSettings()" title="Layout settings">
+                            <i class="fas fa-cog"></i> Settings
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="refreshProfiles()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Bulk Actions Toolbar -->
+                <div id="bulkActionsToolbar" class="alert alert-info d-none mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span id="selectedCount">0 profiles selected</span>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-success" onclick="startSelectedBrowsersWithLayout()">
+                                <i class="fas fa-play"></i> Start with Layout
+                            </button>
+                            <button class="btn btn-warning" onclick="stopSelectedBrowsers()">
+                                <i class="fas fa-stop"></i> Stop Selected
+                            </button>
+                            <button class="btn btn-primary" onclick="arrangeSelectedBrowsers()">
+                                <i class="fas fa-th"></i> Arrange Selected
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="clearSelection()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="profiles-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                </th>
+                                <th>Profile</th>
+                                <th>Status</th>
+                                <th>User Agent</th>
+                                <th>Proxy</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profiles-tbody">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading profiles...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Image Generation Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-magic"></i> AI Image Generation
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-info" onclick="refreshPromptFiles()" title="Refresh prompt files">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#aiGenerationModal" title="Start generation">
+                            <i class="fas fa-play"></i> Start Generation
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="showGenerationStats()" title="View statistics">
+                            <i class="fas fa-chart-bar"></i> Stats
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📁 Available Prompt Files</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>File</th>
+                                        <th>Format</th>
+                                        <th>Prompts</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="prompt-files-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading prompt files...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>📊 Generation Statistics</h6>
+                        <div id="generation-stats" class="card bg-light">
+                            <div class="card-body">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading stats...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scripts Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-code"></i> Selenium Scripts
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-primary" onclick="refreshScripts()" title="Refresh scripts list">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#scriptExecutionModal" title="Execute script">
+                            <i class="fas fa-play"></i> Execute Script
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Script</th>
+                                <th>Description</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scripts-tbody">
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading scripts...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Profile Modal -->
+<div class="modal fade" id="createProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i> Create New Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createProfileForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="profileName" class="form-label">Profile Name *</label>
+                                <input type="text" class="form-control" id="profileName" required>
+                                <div class="form-text">Unique identifier for the profile</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="displayName" class="form-label">Display Name</label>
+                                <input type="text" class="form-control" id="displayName">
+                                <div class="form-text">Friendly name for display</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="userAgent" class="form-label">User Agent *</label>
+                        <select class="form-select" id="userAgent" required>
+                            <option value="">Select a user agent...</option>
+                            <option value="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36">Chrome 120 - Windows</option>
+                            <option value="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36">Chrome 120 - macOS</option>
+                            <option value="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36">Chrome 120 - Linux</option>
+                            <option value="custom">Custom...</option>
+                        </select>
+                        <input type="text" class="form-control mt-2 d-none" id="customUserAgent" placeholder="Enter custom user agent">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="proxy" class="form-label">Proxy (Optional)</label>
+                                <input type="text" class="form-control" id="proxy" placeholder="http://proxy:port">
+                                <div class="form-text">Format: protocol://host:port</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Window Size</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="windowWidth" value="1920" placeholder="Width">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="windowHeight" value="1080" placeholder="Height">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="headless">
+                            <label class="form-check-label" for="headless">
+                                Run in headless mode
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customOptions" class="form-label">Custom Chrome Options</label>
+                        <textarea class="form-control" id="customOptions" rows="3" placeholder="--option1&#10;--option2&#10;--option3"></textarea>
+                        <div class="form-text">One option per line</div>
+                    </div>
+
+                    <!-- Gmail Account Section -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fab fa-google"></i> Gmail Account (Optional)
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gmailEmail" class="form-label">Gmail Email</label>
+                                        <input type="email" class="form-control" id="gmailEmail" placeholder="example@gmail.com">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gmailPassword" class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="gmailPassword" placeholder="Gmail password">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gmailRecoveryEmail" class="form-label">Recovery Email</label>
+                                        <input type="email" class="form-control" id="gmailRecoveryEmail" placeholder="recovery@email.com">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gmailPhone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="gmailPhone" placeholder="+1234567890">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gmail2faSecret" class="form-label">2FA Secret (Optional)</label>
+                                        <input type="text" class="form-control" id="gmail2faSecret" placeholder="2FA secret key">
+                                        <div class="form-text">For automatic 2FA code generation</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" id="gmailAutoLogin">
+                                            <label class="form-check-label" for="gmailAutoLogin">
+                                                Auto-login to Gmail when browser starts
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" rows="2" placeholder="Optional notes about this profile"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createProfileUI()">
+                    <i class="fas fa-save"></i> Create Profile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <input type="hidden" id="editProfileName">
+                    <!-- Same form fields as create modal -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editDisplayName" class="form-label">Display Name</label>
+                                <input type="text" class="form-control" id="editDisplayName">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Profile Name</label>
+                                <input type="text" class="form-control" id="editProfileNameDisplay" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editUserAgent" class="form-label">User Agent</label>
+                        <textarea class="form-control" id="editUserAgent" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editProxy" class="form-label">Proxy</label>
+                                <input type="text" class="form-control" id="editProxy">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Window Size</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="editWindowWidth">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="editWindowHeight">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editHeadless">
+                            <label class="form-check-label" for="editHeadless">
+                                Run in headless mode
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="editNotes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateProfile()">
+                    <i class="fas fa-save"></i> Update Profile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Layout Settings Modal -->
+<div class="modal fade" id="layoutSettingsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog"></i> Auto Layout Settings
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="layoutSettingsForm">
+                    <div class="mb-3">
+                        <label for="layoutMargin" class="form-label">Window Margin (px)</label>
+                        <input type="number" class="form-control" id="layoutMargin" value="10" min="0" max="50">
+                        <div class="form-text">Space between windows</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="titleBarHeight" class="form-label">Title Bar Height (px)</label>
+                        <input type="number" class="form-control" id="titleBarHeight" value="30" min="20" max="60">
+                        <div class="form-text">Height of window title bar</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="taskbarHeight" class="form-label">Taskbar Height (px)</label>
+                        <input type="number" class="form-control" id="taskbarHeight" value="40" min="30" max="80">
+                        <div class="form-text">Height of system taskbar</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="autoLayoutEnabled">
+                            <label class="form-check-label" for="autoLayoutEnabled">
+                                Enable auto layout when starting browsers
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Screen Information</label>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div id="screenInfo">
+                                    <small class="text-muted">Loading screen information...</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Layout Preview</label>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <canvas id="layoutPreview" width="300" height="200" style="border: 1px solid #ddd; width: 100%;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveLayoutSettings()">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Profile Modal -->
+<div class="modal fade" id="importProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-download"></i> Import Existing Chrome Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Import your existing Chrome profile with all saved logins, cookies, and settings!</strong>
+                    <br>This will copy your Chrome profile so you can use it with enhanced bot bypass features.
+                </div>
+
+                <!-- System Profiles List -->
+                <div class="mb-4">
+                    <h6>📋 Detected Chrome Profiles</h6>
+                    <div id="systemProfilesList" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> Scanning for Chrome profiles...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Import Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">🔧 Manual Import</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="importProfileForm">
+                            <div class="mb-3">
+                                <label for="sourcePath" class="form-label">Chrome Profile Path</label>
+                                <input type="text" class="form-control" id="sourcePath"
+                                       placeholder="C:\Users\YourName\AppData\Local\Google\Chrome\User Data\Default">
+                                <div class="form-text">
+                                    Common locations:
+                                    <br>• Windows: <code>%LOCALAPPDATA%\Google\Chrome\User Data\Default</code>
+                                    <br>• macOS: <code>~/Library/Application Support/Google/Chrome/Default</code>
+                                    <br>• Linux: <code>~/.config/google-chrome/Default</code>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="importProfileName" class="form-label">Profile Name</label>
+                                        <input type="text" class="form-control" id="importProfileName" required
+                                               placeholder="my_imported_profile">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="importDisplayName" class="form-label">Display Name</label>
+                                        <input type="text" class="form-control" id="importDisplayName"
+                                               placeholder="My Imported Profile">
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="refreshSystemProfiles()">
+                    <i class="fas fa-sync"></i> Refresh Scan
+                </button>
+                <button type="button" class="btn btn-success" onclick="importProfile()">
+                    <i class="fas fa-download"></i> Import Profile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script Execution Modal -->
+<div class="modal fade" id="scriptExecutionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-play"></i> Execute Selenium Script
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="scriptExecutionForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="targetProfile" class="form-label">Target Profile</label>
+                                <select class="form-select" id="targetProfile" required>
+                                    <option value="">Select a running profile...</option>
+                                </select>
+                                <div class="form-text">Only running profiles are available</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scriptSelect" class="form-label">Script</label>
+                                <select class="form-select" id="scriptSelect" required onchange="updateScriptDescription()">
+                                    <option value="">Select a script...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Script Description</label>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div id="scriptDescription" class="text-muted">
+                                    Select a script to see its description
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="scriptParameters" class="form-label">Parameters (JSON)</label>
+                        <textarea class="form-control" id="scriptParameters" rows="4"
+                                  placeholder='{"url": "https://example.com", "filename": "custom_screenshot.png"}'></textarea>
+                        <div class="form-text">Optional parameters in JSON format</div>
+                    </div>
+                </form>
+
+                <!-- Execution Result -->
+                <div id="executionResult" class="mt-3" style="display: none;">
+                    <h6>Execution Result:</h6>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="resultContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="executeScript()">
+                    <i class="fas fa-play"></i> Execute Script
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Generation Modal -->
+<div class="modal fade" id="aiGenerationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-magic"></i> AI Image Generation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="aiGenerationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Generation Mode</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="generationMode" id="singleMode" value="single" checked onchange="updateGenerationMode()">
+                            <label class="btn btn-outline-primary" for="singleMode">
+                                <i class="fas fa-user"></i> Single Profile
+                            </label>
+                            <input type="radio" class="btn-check" name="generationMode" id="multiMode" value="multi" onchange="updateGenerationMode()">
+                            <label class="btn btn-outline-success" for="multiMode">
+                                <i class="fas fa-users"></i> Multi-Threading
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Single Profile Mode -->
+                    <div id="singleProfileMode">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="generationProfile" class="form-label">Target Profile</label>
+                                    <select class="form-select" id="generationProfile" required>
+                                        <option value="">Select a running profile...</option>
+                                    </select>
+                                    <div class="form-text">Only running profiles are available</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="promptFileSelect" class="form-label">Prompt File</label>
+                                    <select class="form-select" id="promptFileSelect" required onchange="updatePromptFileInfo()">
+                                        <option value="">Select a prompt file...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Threading Mode -->
+                    <div id="multiThreadMode" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="promptFileSelectMulti" class="form-label">Prompt File</label>
+                                    <select class="form-select" id="promptFileSelectMulti" required onchange="updatePromptFileInfoMulti()">
+                                        <option value="">Select a prompt file...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="maxWorkers" class="form-label">Max Workers</label>
+                                    <input type="number" class="form-control" id="maxWorkers" value="3" min="1" max="10">
+                                    <div class="form-text">Number of concurrent generations</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Select Profiles for Multi-Threading</label>
+                            <div id="multiProfileSelection" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                <div class="text-muted">No running profiles available</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="platformSelect" class="form-label">AI Platform</label>
+                        <select class="form-select" id="platformSelect" required onchange="updatePlatformSettings()">
+                            <option value="leonardo">Leonardo</option>
+                        </select>
+                    </div>
+
+                    <!-- Platform-specific settings -->
+                    <div id="stableDiffusionSettings" class="platform-settings">
+                        <h6>Stable Diffusion Settings</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="sdBaseUrl" class="form-label">Base URL</label>
+                                    <input type="url" class="form-control" id="sdBaseUrl" value="http://localhost:7860">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="generationDelay" class="form-label">Delay Between Generations (seconds)</label>
+                                    <input type="number" class="form-control" id="generationDelay" value="5" min="1" max="60">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="midjourneySettings" class="platform-settings" style="display: none;">
+                        <h6>Midjourney Settings</h6>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Note:</strong> Make sure you're logged into Discord and have access to Midjourney bot.
+                        </div>
+                        <div class="mb-3">
+                            <label for="mjDelay" class="form-label">Delay Between Generations (seconds)</label>
+                            <input type="number" class="form-control" id="mjDelay" value="60" min="30" max="300">
+                            <div class="form-text">Midjourney typically takes 30-60 seconds per generation</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Prompt File Info</label>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div id="promptFileInfo" class="text-muted">
+                                    Select a prompt file to see details
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Generation Progress -->
+                <div id="generationProgress" class="mt-3" style="display: none;">
+                    <h6>Generation Progress:</h6>
+                    <div class="progress mb-2">
+                        <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div id="progressText" class="text-muted">Preparing...</div>
+                    <div id="generationResults" class="mt-3"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="startAIGeneration()">
+                    <i class="fas fa-magic"></i> Start Generation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Local profiles array for this page
+    let profilesData = [];
+    
+    // Load profiles on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProfiles();
+        
+        // User agent selection handler
+        document.getElementById('userAgent').addEventListener('change', function() {
+            const customInput = document.getElementById('customUserAgent');
+            if (this.value === 'custom') {
+                customInput.classList.remove('d-none');
+                customInput.required = true;
+            } else {
+                customInput.classList.add('d-none');
+                customInput.required = false;
+                customInput.value = '';
+            }
+        });
+    });
+    
+    // Socket.IO event listeners - wait for socket to be available
+    function setupSocketListeners() {
+        if (typeof socket !== 'undefined' && socket) {
+            socket.on('profiles_updated', function() {
+                loadProfiles();
+            });
+
+            socket.on('browser_started', function(data) {
+                showAlert(`Browser started for profile: ${data.profile}`, 'success');
+                loadProfiles();
+            });
+
+            socket.on('browser_stopped', function(data) {
+                showAlert(`Browser stopped for profile: ${data.profile}`, 'info');
+                loadProfiles();
+            });
+
+            socket.on('browser_error', function(data) {
+                showAlert(`Browser error for profile ${data.profile}: ${data.error}`, 'danger');
+            });
+        } else {
+            // Retry after a short delay
+            setTimeout(setupSocketListeners, 100);
+        }
+    }
+
+    // Setup socket listeners when page loads
+    setupSocketListeners();
+    
+    async function loadProfiles() {
+        try {
+            console.log('🔄 Loading profiles...');
+            const response = await fetch('/api/profiles');
+            const data = await response.json();
+
+            console.log('📊 API Response:', data);
+
+            if (data.success) {
+                profilesData = data.profiles;
+                console.log('📋 Profiles data:', profilesData);
+                console.log('📋 Number of profiles:', profilesData.length);
+                updateProfilesTable();
+            } else {
+                console.error('❌ API Error:', data.error);
+                showAlert('Error loading profiles: ' + data.error, 'danger');
+            }
+
+        } catch (error) {
+            console.error('❌ Error loading profiles:', error);
+            showAlert('Error loading profiles', 'danger');
+        }
+    }
+    
+    function updateProfilesTable() {
+        console.log('🔄 Updating profiles table...');
+        const tbody = document.getElementById('profiles-tbody');
+        console.log('📋 Table body element:', tbody);
+        console.log('📊 Profiles data length:', profilesData.length);
+
+        if (!tbody) {
+            console.error('❌ Table body element not found!');
+            return;
+        }
+
+        if (profilesData.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted">
+                        <i class="fas fa-info-circle"></i> No profiles found. Create your first profile to get started.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = profilesData.map(profile => {
+            const statusBadge = profile.is_running 
+                ? '<span class="badge bg-success"><i class="fas fa-play"></i> Running</span>'
+                : '<span class="badge bg-secondary"><i class="fas fa-stop"></i> Stopped</span>';
+            
+            const createdDate = new Date(profile.created_at).toLocaleDateString('vi-VN');
+            
+            return `
+                <tr>
+                    <td>
+                        <input type="checkbox" class="profile-checkbox" value="${profile.name}" onchange="updateBulkActions()">
+                    </td>
+                    <td>
+                        <div>
+                            <strong>${profile.display_name}</strong>
+                            <br><small class="text-muted">${profile.name}</small>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <small title="${profile.user_agent}">
+                            ${profile.user_agent.substring(0, 40)}...
+                        </small>
+                    </td>
+                    <td>
+                        ${profile.proxy 
+                            ? `<span class="badge bg-info">${profile.proxy}</span>` 
+                            : '<span class="text-muted">No proxy</span>'
+                        }
+                    </td>
+                    <td>
+                        <small>${createdDate}</small>
+                        ${profile.last_used ? `<br><small class="text-muted">Last: ${new Date(profile.last_used).toLocaleDateString('vi-VN')}</small>` : ''}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            ${profile.is_running 
+                                ? `<button class="btn btn-warning" onclick="stopBrowser('${profile.name}')" title="Stop Browser">
+                                     <i class="fas fa-stop"></i>
+                                   </button>
+                                   <button class="btn btn-info" onclick="navigateBrowser('${profile.name}')" title="Navigate">
+                                     <i class="fas fa-external-link-alt"></i>
+                                   </button>`
+                                : `<button class="btn btn-success" onclick="startBrowser('${profile.name}')" title="Start Browser">
+                                     <i class="fas fa-play"></i>
+                                   </button>`
+                            }
+                            <button class="btn btn-secondary" onclick="editProfile('${profile.name}')" title="Edit Profile">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteProfile('${profile.name}')" title="Delete Profile">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    // createProfile function moved to app.js as createProfileFromUI
+    
+    async function startBrowser(profileName) {
+        try {
+            const response = await fetch(`/api/profiles/${profileName}/start`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+            } else {
+                showAlert('Error starting browser: ' + data.error, 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Error starting browser:', error);
+            showAlert('Error starting browser', 'danger');
+        }
+    }
+    
+    async function stopBrowser(profileName) {
+        try {
+            const response = await fetch(`/api/profiles/${profileName}/stop`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+            } else {
+                showAlert('Error stopping browser: ' + data.error, 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Error stopping browser:', error);
+            showAlert('Error stopping browser', 'danger');
+        }
+    }
+    
+    function navigateBrowser(profileName) {
+        const url = prompt('Enter URL to navigate to:');
+        if (url) {
+            navigateToUrl(profileName, url);
+        }
+    }
+    
+    async function navigateToUrl(profileName, url) {
+        try {
+            const response = await fetch(`/api/profiles/${profileName}/navigate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+            } else {
+                showAlert('Error navigating: ' + data.error, 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Error navigating:', error);
+            showAlert('Error navigating browser', 'danger');
+        }
+    }
+    
+    function editProfile(profileName) {
+        const profile = profilesData.find(p => p.name === profileName);
+        if (!profile) return;
+        
+        // Populate edit form
+        document.getElementById('editProfileName').value = profile.name;
+        document.getElementById('editProfileNameDisplay').value = profile.name;
+        document.getElementById('editDisplayName').value = profile.display_name;
+        document.getElementById('editUserAgent').value = profile.user_agent;
+        document.getElementById('editProxy').value = profile.proxy || '';
+        document.getElementById('editWindowWidth').value = profile.window_size[0];
+        document.getElementById('editWindowHeight').value = profile.window_size[1];
+        document.getElementById('editHeadless').checked = profile.headless;
+        document.getElementById('editNotes').value = profile.notes;
+        
+        // Show modal
+        new bootstrap.Modal(document.getElementById('editProfileModal')).show();
+    }
+    
+    async function updateProfile() {
+        try {
+            const profileName = document.getElementById('editProfileName').value;
+            
+            const updateData = {
+                display_name: document.getElementById('editDisplayName').value,
+                user_agent: document.getElementById('editUserAgent').value,
+                proxy: document.getElementById('editProxy').value || null,
+                window_size: [
+                    parseInt(document.getElementById('editWindowWidth').value),
+                    parseInt(document.getElementById('editWindowHeight').value)
+                ],
+                headless: document.getElementById('editHeadless').checked,
+                notes: document.getElementById('editNotes').value
+            };
+            
+            const response = await fetch(`/api/profiles/${profileName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
+                loadProfiles();
+            } else {
+                showAlert('Error updating profile: ' + data.error, 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            showAlert('Error updating profile', 'danger');
+        }
+    }
+    
+    async function deleteProfile(profileName) {
+        if (!confirm(`Are you sure you want to delete profile "${profileName}"? This action cannot be undone.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/profiles/${profileName}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+                loadProfiles();
+            } else {
+                showAlert('Error deleting profile: ' + data.error, 'danger');
+            }
+            
+        } catch (error) {
+            console.error('Error deleting profile:', error);
+            showAlert('Error deleting profile', 'danger');
+        }
+    }
+    
+    function refreshProfiles() {
+        loadProfiles();
+        showAlert('Profiles refreshed', 'info');
+    }
+
+    // Auto Layout Functions
+    function showLayoutSettings() {
+        // Load current settings
+        document.getElementById('layoutMargin').value = layoutConfig.margin;
+        document.getElementById('titleBarHeight').value = layoutConfig.titleBarHeight;
+        document.getElementById('taskbarHeight').value = layoutConfig.taskbarHeight;
+        document.getElementById('autoLayoutEnabled').checked = autoLayoutEnabled;
+
+        // Update screen info
+        updateScreenInfo();
+
+        // Show modal
+        new bootstrap.Modal(document.getElementById('layoutSettingsModal')).show();
+
+        // Update preview when settings change
+        ['layoutMargin', 'titleBarHeight', 'taskbarHeight'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateLayoutPreview);
+        });
+
+        // Initial preview
+        setTimeout(updateLayoutPreview, 100);
+    }
+
+    function updateScreenInfo() {
+        const screen = getScreenInfo();
+        const info = `
+            <strong>Screen Resolution:</strong> ${screen.width} x ${screen.height}<br>
+            <strong>Available Area:</strong> ${screen.availWidth} x ${screen.availHeight}<br>
+            <strong>Color Depth:</strong> ${screen.colorDepth} bits
+        `;
+        document.getElementById('screenInfo').innerHTML = info;
+    }
+
+    function updateLayoutPreview() {
+        const canvas = document.getElementById('layoutPreview');
+        const ctx = canvas.getContext('2d');
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Get current settings
+        const margin = parseInt(document.getElementById('layoutMargin').value) || 10;
+        const titleHeight = parseInt(document.getElementById('titleBarHeight').value) || 30;
+
+        // Simulate 4 windows for preview
+        const layout = calculateOptimalLayout(4);
+
+        // Scale to fit canvas
+        const scale = Math.min(canvas.width / screen.availWidth, canvas.height / screen.availHeight);
+
+        // Draw windows
+        layout.positions.forEach((pos, index) => {
+            const x = pos.x * scale;
+            const y = pos.y * scale;
+            const w = pos.width * scale;
+            const h = pos.height * scale;
+
+            // Window background
+            ctx.fillStyle = index % 2 === 0 ? '#e3f2fd' : '#f3e5f5';
+            ctx.fillRect(x, y, w, h);
+
+            // Window border
+            ctx.strokeStyle = '#1976d2';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, w, h);
+
+            // Title bar
+            ctx.fillStyle = '#1976d2';
+            ctx.fillRect(x, y, w, titleHeight * scale);
+
+            // Window number
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${index + 1}`, x + w/2, y + (titleHeight * scale)/2 + 4);
+        });
+
+        // Draw screen border
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function saveLayoutSettings() {
+        // Update global config
+        layoutConfig.margin = parseInt(document.getElementById('layoutMargin').value) || 10;
+        layoutConfig.titleBarHeight = parseInt(document.getElementById('titleBarHeight').value) || 30;
+        layoutConfig.taskbarHeight = parseInt(document.getElementById('taskbarHeight').value) || 40;
+        autoLayoutEnabled = document.getElementById('autoLayoutEnabled').checked;
+
+        // Save to localStorage
+        localStorage.setItem('layoutConfig', JSON.stringify(layoutConfig));
+        localStorage.setItem('autoLayoutEnabled', autoLayoutEnabled);
+
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('layoutSettingsModal')).hide();
+
+        showAlert('Layout settings saved', 'success');
+    }
+
+    // Load saved settings on page load
+    function loadLayoutSettings() {
+        const savedConfig = localStorage.getItem('layoutConfig');
+        if (savedConfig) {
+            layoutConfig = { ...layoutConfig, ...JSON.parse(savedConfig) };
+        }
+
+        const savedAutoLayout = localStorage.getItem('autoLayoutEnabled');
+        if (savedAutoLayout !== null) {
+            autoLayoutEnabled = savedAutoLayout === 'true';
+        }
+    }
+
+    // Bulk Actions Functions
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.profile-checkbox');
+
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+
+        updateBulkActions();
+    }
+
+    function updateBulkActions() {
+        const checkboxes = document.querySelectorAll('.profile-checkbox:checked');
+        const toolbar = document.getElementById('bulkActionsToolbar');
+        const countSpan = document.getElementById('selectedCount');
+
+        if (checkboxes.length > 0) {
+            toolbar.classList.remove('d-none');
+            countSpan.textContent = `${checkboxes.length} profile${checkboxes.length > 1 ? 's' : ''} selected`;
+        } else {
+            toolbar.classList.add('d-none');
+        }
+
+        // Update select all checkbox
+        const allCheckboxes = document.querySelectorAll('.profile-checkbox');
+        const selectAll = document.getElementById('selectAll');
+        selectAll.indeterminate = checkboxes.length > 0 && checkboxes.length < allCheckboxes.length;
+        selectAll.checked = checkboxes.length === allCheckboxes.length && allCheckboxes.length > 0;
+    }
+
+    function getSelectedProfiles() {
+        const checkboxes = document.querySelectorAll('.profile-checkbox:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('.profile-checkbox').forEach(cb => cb.checked = false);
+        document.getElementById('selectAll').checked = false;
+        updateBulkActions();
+    }
+
+    async function startSelectedBrowsersWithLayout() {
+        const selectedProfiles = getSelectedProfiles();
+        if (selectedProfiles.length === 0) {
+            showAlert('No profiles selected', 'warning');
+            return;
+        }
+
+        await startMultipleBrowsersWithLayout(selectedProfiles);
+        clearSelection();
+    }
+
+    async function stopSelectedBrowsers() {
+        const selectedProfiles = getSelectedProfiles();
+        if (selectedProfiles.length === 0) {
+            showAlert('No profiles selected', 'warning');
+            return;
+        }
+
+        showAlert(`Stopping ${selectedProfiles.length} browsers...`, 'info');
+
+        const promises = selectedProfiles.map(async (profileName) => {
+            try {
+                await stopBrowser(profileName);
+            } catch (error) {
+                console.error(`Error stopping browser ${profileName}:`, error);
+            }
+        });
+
+        await Promise.all(promises);
+        showAlert('Selected browsers stopped', 'success');
+        clearSelection();
+        loadProfiles();
+    }
+
+    function arrangeSelectedBrowsers() {
+        const selectedProfiles = getSelectedProfiles();
+        if (selectedProfiles.length === 0) {
+            showAlert('No profiles selected', 'warning');
+            return;
+        }
+
+        // Filter only running browsers
+        const runningProfiles = selectedProfiles.filter(profileName => {
+            const profile = profilesData.find(p => p.name === profileName);
+            return profile && profile.is_running;
+        });
+
+        if (runningProfiles.length === 0) {
+            showAlert('No running browsers selected', 'warning');
+            return;
+        }
+
+        applyAutoLayout(runningProfiles);
+        clearSelection();
+    }
+
+    // Import Profile Functions
+    async function refreshSystemProfiles() {
+        try {
+            const listContainer = document.getElementById('systemProfilesList');
+            listContainer.innerHTML = '<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Scanning for Chrome profiles...</div>';
+
+            const response = await fetch('/api/system-profiles');
+            const data = await response.json();
+
+            if (data.success && data.profiles.length > 0) {
+                listContainer.innerHTML = data.profiles.map(profile => `
+                    <div class="card mb-2">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">${profile.display_name}</h6>
+                                    <small class="text-muted">${profile.name}</small>
+                                    <br>
+                                    <small class="text-info">📁 ${profile.path}</small>
+                                    <br>
+                                    <small class="text-secondary">
+                                        💾 ${profile.size_mb} MB •
+                                        🕒 ${new Date(profile.last_modified).toLocaleDateString()}
+                                        ${profile.account_info.email ? ` • 📧 ${profile.account_info.email}` : ''}
+                                    </small>
+                                    <br>
+                                    <div class="mt-1">
+                                        ${profile.has_login_data ? '<span class="badge bg-success me-1">🔐 Login Data</span>' : ''}
+                                        ${profile.has_cookies ? '<span class="badge bg-info me-1">🍪 Cookies</span>' : ''}
+                                        ${profile.has_history ? '<span class="badge bg-secondary me-1">📚 History</span>' : ''}
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-primary" onclick="selectSystemProfile('${profile.path}', '${profile.display_name}')">
+                                    <i class="fas fa-check"></i> Select
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                listContainer.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-exclamation-circle"></i> No Chrome profiles found on this system.
+                        <br><small>Try manual import below.</small>
+                    </div>
+                `;
+            }
+
+        } catch (error) {
+            console.error('Error loading system profiles:', error);
+            document.getElementById('systemProfilesList').innerHTML = `
+                <div class="text-center text-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Error scanning profiles: ${error.message}
+                </div>
+            `;
+        }
+    }
+
+    function selectSystemProfile(path, displayName) {
+        document.getElementById('sourcePath').value = path;
+        document.getElementById('importDisplayName').value = displayName;
+
+        // Generate profile name from display name
+        const profileName = displayName.toLowerCase()
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
+        document.getElementById('importProfileName').value = profileName;
+
+        showAlert('Profile selected! You can now import it.', 'success');
+    }
+
+    async function importProfile() {
+        try {
+            const sourcePath = document.getElementById('sourcePath').value.trim();
+            const profileName = document.getElementById('importProfileName').value.trim();
+            const displayName = document.getElementById('importDisplayName').value.trim();
+
+            if (!sourcePath || !profileName) {
+                showAlert('Please provide source path and profile name', 'danger');
+                return;
+            }
+
+            // Show loading
+            const importBtn = event.target;
+            const originalText = importBtn.innerHTML;
+            importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+            importBtn.disabled = true;
+
+            const response = await fetch('/api/import-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    source_path: sourcePath,
+                    profile_name: profileName,
+                    display_name: displayName || profileName
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showAlert(data.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('importProfileModal')).hide();
+                document.getElementById('importProfileForm').reset();
+                loadProfiles();
+            } else {
+                showAlert('Error importing profile: ' + data.error, 'danger');
+            }
+
+            // Restore button
+            importBtn.innerHTML = originalText;
+            importBtn.disabled = false;
+
+        } catch (error) {
+            console.error('Error importing profile:', error);
+            showAlert('Error importing profile: ' + error.message, 'danger');
+        }
+    }
+
+    // Script Management Functions
+    let availableScripts = [];
+
+    async function refreshScripts() {
+        try {
+            const response = await fetch('/api/scripts');
+            const data = await response.json();
+
+            if (data.success) {
+                availableScripts = data.scripts;
+                updateScriptsTable();
+                updateScriptSelects();
+            } else {
+                showAlert('Error loading scripts: ' + data.error, 'danger');
+            }
+
+        } catch (error) {
+            console.error('Error loading scripts:', error);
+            showAlert('Error loading scripts', 'danger');
+        }
+    }
+
+    function updateScriptsTable() {
+        const tbody = document.getElementById('scripts-tbody');
+
+        if (availableScripts.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-muted">
+                        <i class="fas fa-info-circle"></i> No scripts found. Add scripts to the scripts/ directory.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = availableScripts.map(script => `
+            <tr>
+                <td>
+                    <strong>${script.display_name}</strong>
+                    <br><small class="text-muted">${script.name}</small>
+                </td>
+                <td>
+                    <small>${script.description.substring(0, 100)}${script.description.length > 100 ? '...' : ''}</small>
+                </td>
+                <td>
+                    <small>${new Date(script.created_at).toLocaleDateString()}</small>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="selectScriptForExecution('${script.name}')">
+                        <i class="fas fa-play"></i> Execute
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateScriptSelects() {
+        const scriptSelect = document.getElementById('scriptSelect');
+
+        scriptSelect.innerHTML = '<option value="">Select a script...</option>' +
+            availableScripts.map(script =>
+                `<option value="${script.name}">${script.display_name}</option>`
+            ).join('');
+    }
+
+    function selectScriptForExecution(scriptName) {
+        // Open execution modal and select script
+        document.getElementById('scriptSelect').value = scriptName;
+        updateScriptDescription();
+        updateRunningProfiles();
+        new bootstrap.Modal(document.getElementById('scriptExecutionModal')).show();
+    }
+
+    function updateScriptDescription() {
+        const scriptSelect = document.getElementById('scriptSelect');
+        const descriptionDiv = document.getElementById('scriptDescription');
+
+        const selectedScript = availableScripts.find(s => s.name === scriptSelect.value);
+
+        if (selectedScript) {
+            descriptionDiv.innerHTML = `
+                <strong>${selectedScript.display_name}</strong><br>
+                <small class="text-muted">File: ${selectedScript.name}</small><br><br>
+                ${selectedScript.description.replace(/\n/g, '<br>')}
+            `;
+        } else {
+            descriptionDiv.innerHTML = '<span class="text-muted">Select a script to see its description</span>';
+        }
+    }
+
+    function updateRunningProfiles() {
+        const profileSelect = document.getElementById('targetProfile');
+
+        // Get running profiles from current profiles data
+        const runningProfiles = profilesData.filter(p => p.is_running);
+
+        profileSelect.innerHTML = '<option value="">Select a running profile...</option>' +
+            runningProfiles.map(profile =>
+                `<option value="${profile.name}">${profile.display_name}</option>`
+            ).join('');
+
+        if (runningProfiles.length === 0) {
+            profileSelect.innerHTML = '<option value="">No running profiles available</option>';
+        }
+    }
+
+    async function executeScript() {
+        try {
+            const profileName = document.getElementById('targetProfile').value;
+            const scriptName = document.getElementById('scriptSelect').value;
+            const parametersText = document.getElementById('scriptParameters').value.trim();
+
+            if (!profileName || !scriptName) {
+                showAlert('Please select both profile and script', 'danger');
+                return;
+            }
+
+            // Parse parameters
+            let parameters = {};
+            if (parametersText) {
+                try {
+                    parameters = JSON.parse(parametersText);
+                } catch (e) {
+                    showAlert('Invalid JSON in parameters', 'danger');
+                    return;
+                }
+            }
+
+            // Show loading
+            const executeBtn = event.target;
+            const originalText = executeBtn.innerHTML;
+            executeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Executing...';
+            executeBtn.disabled = true;
+
+            // Execute script
+            const response = await fetch(`/api/profiles/${profileName}/execute-script`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    script_name: scriptName,
+                    parameters: parameters
+                })
+            });
+
+            const result = await response.json();
+
+            // Show result
+            displayExecutionResult(result);
+
+            // Restore button
+            executeBtn.innerHTML = originalText;
+            executeBtn.disabled = false;
+
+        } catch (error) {
+            console.error('Error executing script:', error);
+            showAlert('Error executing script: ' + error.message, 'danger');
+        }
+    }
+
+    function displayExecutionResult(result) {
+        const resultDiv = document.getElementById('executionResult');
+        const contentDiv = document.getElementById('resultContent');
+
+        const statusClass = result.success ? 'success' : 'danger';
+        const statusIcon = result.success ? 'check-circle' : 'exclamation-triangle';
+
+        contentDiv.innerHTML = `
+            <div class="alert alert-${statusClass}">
+                <i class="fas fa-${statusIcon}"></i> ${result.message}
+            </div>
+
+            ${result.data ? `
+                <h6>Script Data:</h6>
+                <pre class="bg-light p-2 rounded"><code>${JSON.stringify(result.data, null, 2)}</code></pre>
+            ` : ''}
+
+            ${result.error ? `
+                <h6>Error Details:</h6>
+                <pre class="bg-danger text-white p-2 rounded"><code>${result.error}</code></pre>
+            ` : ''}
+
+            <small class="text-muted">
+                Execution time: ${result.execution_time?.toFixed(2) || 'N/A'}s |
+                Timestamp: ${result.timestamp || 'N/A'}
+            </small>
+        `;
+
+        resultDiv.style.display = 'block';
+    }
+
+    // AI Image Generation Functions
+    let promptFiles = [];
+    let generationStats = {};
+
+    async function refreshPromptFiles() {
+        try {
+            const response = await fetch('/api/prompt-files');
+            const data = await response.json();
+
+            if (data.success) {
+                promptFiles = data.files;
+                updatePromptFilesTable();
+                updatePromptFileSelects();
+            } else {
+                showAlert('Error loading prompt files: ' + data.error, 'danger');
+            }
+
+        } catch (error) {
+            console.error('Error loading prompt files:', error);
+            showAlert('Error loading prompt files', 'danger');
+        }
+    }
+
+    async function refreshGenerationStats() {
+        try {
+            const response = await fetch('/api/generation-stats');
+            const data = await response.json();
+
+            if (data.success) {
+                generationStats = data.stats;
+                updateGenerationStatsDisplay();
+            }
+
+        } catch (error) {
+            console.error('Error loading generation stats:', error);
+        }
+    }
+
+    function updatePromptFilesTable() {
+        const tbody = document.getElementById('prompt-files-tbody');
+
+        if (promptFiles.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-muted">
+                        <i class="fas fa-info-circle"></i> No prompt files found. Add files to the prompts/ directory.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = promptFiles.map(file => `
+            <tr>
+                <td>
+                    <strong>${file.name}</strong>
+                    ${file.error ? '<br><small class="text-danger">Error: ' + file.error + '</small>' : ''}
+                </td>
+                <td><span class="badge bg-secondary">${file.format}</span></td>
+                <td>${file.prompt_count || 0}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="selectPromptFile('${file.path}')">
+                        <i class="fas fa-magic"></i> Use
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateGenerationStatsDisplay() {
+        const statsDiv = document.getElementById('generation-stats');
+
+        const formatBytes = (bytes) => {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        };
+
+        statsDiv.innerHTML = `
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary">${generationStats.total_images || 0}</h4>
+                        <small>Images Generated</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">${generationStats.total_metadata || 0}</h4>
+                        <small>Completed Batches</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <small class="text-muted">
+                        Storage Used: ${formatBytes(generationStats.results_dir_size || 0)}
+                    </small>
+                </div>
+            </div>
+        `;
+    }
+
+    function updateGenerationMode() {
+        const mode = document.querySelector('input[name="generationMode"]:checked').value;
+
+        document.getElementById('singleProfileMode').style.display = mode === 'single' ? 'block' : 'none';
+        document.getElementById('multiThreadMode').style.display = mode === 'multi' ? 'block' : 'none';
+
+        if (mode === 'multi') {
+            updateMultiProfileSelection();
+            updatePromptFileSelectsMulti();
+        }
+    }
+
+    function updateMultiProfileSelection() {
+        const container = document.getElementById('multiProfileSelection');
+        const runningProfiles = profilesData.filter(p => p.is_running);
+
+        if (runningProfiles.length === 0) {
+            container.innerHTML = '<div class="text-muted">No running profiles available</div>';
+            return;
+        }
+
+        container.innerHTML = runningProfiles.map(profile => `
+            <div class="form-check">
+                <input class="form-check-input profile-multi-check" type="checkbox" value="${profile.name}" id="multi_${profile.name}">
+                <label class="form-check-label" for="multi_${profile.name}">
+                    <strong>${profile.display_name}</strong>
+                    <br><small class="text-muted">${profile.name}</small>
+                </label>
+            </div>
+        `).join('');
+    }
+
+    function updatePromptFileSelectsMulti() {
+        const fileSelect = document.getElementById('promptFileSelectMulti');
+
+        fileSelect.innerHTML = '<option value="">Select a prompt file...</option>' +
+            promptFiles.filter(f => !f.error).map(file =>
+                `<option value="${file.path}">${file.name} (${file.prompt_count} prompts)</option>`
+            ).join('');
+    }
+
+    function updatePromptFileInfoMulti() {
+        // Same as single mode for now
+        updatePromptFileInfo();
+    }
+
+    function updatePromptFileSelects() {
+        const fileSelect = document.getElementById('promptFileSelect');
+
+        fileSelect.innerHTML = '<option value="">Select a prompt file...</option>' +
+            promptFiles.filter(f => !f.error).map(file =>
+                `<option value="${file.path}">${file.name} (${file.prompt_count} prompts)</option>`
+            ).join('');
+    }
+
+    function selectPromptFile(filePath) {
+        document.getElementById('promptFileSelect').value = filePath;
+        updatePromptFileInfo();
+        updateRunningProfilesForGeneration();
+        new bootstrap.Modal(document.getElementById('aiGenerationModal')).show();
+    }
+
+    function updatePromptFileInfo() {
+        const fileSelect = document.getElementById('promptFileSelect');
+        const infoDiv = document.getElementById('promptFileInfo');
+
+        const selectedFile = promptFiles.find(f => f.path === fileSelect.value);
+
+        if (selectedFile) {
+            infoDiv.innerHTML = `
+                <strong>${selectedFile.name}</strong><br>
+                <small class="text-muted">Format: ${selectedFile.format.toUpperCase()}</small><br>
+                <small class="text-muted">Size: ${(selectedFile.size / 1024).toFixed(1)} KB</small><br>
+                <small class="text-muted">Modified: ${new Date(selectedFile.modified).toLocaleString()}</small><br><br>
+                <span class="badge bg-primary">${selectedFile.prompt_count} prompts</span>
+            `;
+        } else {
+            infoDiv.innerHTML = '<span class="text-muted">Select a prompt file to see details</span>';
+        }
+    }
+
+    function updatePlatformSettings() {
+        const platform = document.getElementById('platformSelect').value;
+
+        document.getElementById('stableDiffusionSettings').style.display =
+            platform === 'stable_diffusion' ? 'block' : 'none';
+        document.getElementById('midjourneySettings').style.display =
+            platform === 'midjourney' ? 'block' : 'none';
+    }
+
+    function updateRunningProfilesForGeneration() {
+        const profileSelect = document.getElementById('generationProfile');
+
+        const runningProfiles = profilesData.filter(p => p.is_running);
+
+        profileSelect.innerHTML = '<option value="">Select a running profile...</option>' +
+            runningProfiles.map(profile =>
+                `<option value="${profile.name}">${profile.display_name}</option>`
+            ).join('');
+
+        if (runningProfiles.length === 0) {
+            profileSelect.innerHTML = '<option value="">No running profiles available</option>';
+        }
+    }
+
+    async function startAIGeneration() {
+        try {
+            const mode = document.querySelector('input[name="generationMode"]:checked').value;
+            const platform = document.getElementById('platformSelect').value;
+
+            if (!platform) {
+                showAlert('Please select a platform', 'danger');
+                return;
+            }
+
+            if (mode === 'single') {
+                await startSingleGeneration();
+            } else {
+                await startMultiThreadGeneration();
+            }
+
+        } catch (error) {
+            console.error('Error starting AI generation:', error);
+            showAlert('Error starting generation: ' + error.message, 'danger');
+        }
+    }
+
+    async function startSingleGeneration() {
+        const profileName = document.getElementById('generationProfile').value;
+        const promptFile = document.getElementById('promptFileSelect').value;
+        const platform = document.getElementById('platformSelect').value;
+
+        if (!profileName || !promptFile) {
+            showAlert('Please fill in all required fields', 'danger');
+            return;
+        }
+
+        // Get platform-specific parameters
+        let parameters = {};
+        if (platform === 'stable_diffusion') {
+            parameters.base_url = document.getElementById('sdBaseUrl').value;
+            parameters.delay = parseInt(document.getElementById('generationDelay').value);
+        } else if (platform === 'midjourney') {
+            parameters.delay = parseInt(document.getElementById('mjDelay').value);
+        }
+
+        // Show progress
+        const progressDiv = document.getElementById('generationProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        progressDiv.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Starting single-threaded generation...';
+
+        // Disable start button
+        const startBtn = event.target;
+        const originalText = startBtn.innerHTML;
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        startBtn.disabled = true;
+
+        try {
+            // Start generation
+            const response = await fetch(`/api/profiles/${profileName}/ai-generation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt_file: promptFile,
+                    platform: platform,
+                    parameters: parameters
+                })
+            });
+
+            const result = await response.json();
+
+            // Update progress
+            progressBar.style.width = '100%';
+            progressText.textContent = 'Generation completed!';
+
+            // Show results
+            displayGenerationResults(result);
+
+        } finally {
+            // Restore button
+            startBtn.innerHTML = originalText;
+            startBtn.disabled = false;
+
+            // Refresh stats
+            refreshGenerationStats();
+        }
+    }
+
+    async function startMultiThreadGeneration() {
+        const promptFile = document.getElementById('promptFileSelectMulti').value;
+        const platform = document.getElementById('platformSelect').value;
+        const maxWorkers = parseInt(document.getElementById('maxWorkers').value);
+
+        // Get selected profiles
+        const selectedProfiles = Array.from(document.querySelectorAll('.profile-multi-check:checked'))
+            .map(cb => cb.value);
+
+        if (!promptFile) {
+            showAlert('Please select a prompt file', 'danger');
+            return;
+        }
+
+        if (selectedProfiles.length === 0) {
+            showAlert('Please select at least one profile', 'danger');
+            return;
+        }
+
+        // Get platform-specific parameters
+        let parameters = {};
+        if (platform === 'stable_diffusion') {
+            parameters.base_url = document.getElementById('sdBaseUrl').value;
+            parameters.delay = parseInt(document.getElementById('generationDelay').value);
+        } else if (platform === 'midjourney') {
+            parameters.delay = parseInt(document.getElementById('mjDelay').value);
+        }
+
+        // Show progress
+        const progressDiv = document.getElementById('generationProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        progressDiv.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = `Starting multi-threaded generation with ${selectedProfiles.length} profiles...`;
+
+        // Disable start button
+        const startBtn = event.target;
+        const originalText = startBtn.innerHTML;
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Multi-Threading...';
+        startBtn.disabled = true;
+
+        try {
+            // Start multi-threaded generation
+            const response = await fetch('/api/ai-generation-multi', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt_file: promptFile,
+                    platform: platform,
+                    profiles: selectedProfiles,
+                    thread_config: {
+                        max_workers: Math.min(maxWorkers, selectedProfiles.length),
+                        timeout: 300,
+                        retry_attempts: 2,
+                        delay_between_batches: 1.0
+                    },
+                    parameters: parameters
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Start monitoring progress
+                monitorMultiThreadProgress(result.data.batch_id);
+
+                progressText.textContent = `Multi-threaded generation started! Batch ID: ${result.data.batch_id}`;
+
+                showAlert(`Multi-threaded generation started with ${result.data.workers} workers`, 'success');
+            } else {
+                throw new Error(result.error);
+            }
+
+        } catch (error) {
+            progressText.textContent = 'Multi-threaded generation failed!';
+            throw error;
+        } finally {
+            // Restore button
+            startBtn.innerHTML = originalText;
+            startBtn.disabled = false;
+        }
+    }
+
+    function monitorMultiThreadProgress(batchId) {
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        const checkProgress = async () => {
+            try {
+                const response = await fetch(`/api/ai-generation-progress/${batchId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const progress = data.progress;
+
+                    // Update progress bar
+                    progressBar.style.width = `${progress.progress_percentage}%`;
+
+                    // Update progress text
+                    progressText.innerHTML = `
+                        <strong>Multi-Threading Progress:</strong><br>
+                        Completed: ${progress.completed}/${progress.total_prompts}
+                        (${progress.successful} successful, ${progress.failed} failed)<br>
+                        Elapsed: ${progress.elapsed_time.toFixed(1)}s |
+                        Estimated remaining: ${progress.estimated_remaining.toFixed(1)}s
+                    `;
+
+                    // Continue monitoring if still running
+                    if (progress.is_running) {
+                        setTimeout(checkProgress, 2000); // Check every 2 seconds
+                    } else {
+                        // Generation completed
+                        progressText.innerHTML += '<br><strong>✅ Multi-threaded generation completed!</strong>';
+                        refreshGenerationStats();
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error checking progress:', error);
+            }
+        };
+
+        // Start monitoring
+        checkProgress();
+    }
+
+    function displayGenerationResults(result) {
+        const resultsDiv = document.getElementById('generationResults');
+
+        const statusClass = result.success ? 'success' : 'danger';
+        const statusIcon = result.success ? 'check-circle' : 'exclamation-triangle';
+
+        let resultsHtml = `
+            <div class="alert alert-${statusClass}">
+                <i class="fas fa-${statusIcon}"></i> ${result.message}
+            </div>
+        `;
+
+        if (result.data && result.data.results) {
+            resultsHtml += `
+                <h6>Generation Results:</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Prompt</th>
+                                <th>Status</th>
+                                <th>Images</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${result.data.results.map(r => `
+                                <tr>
+                                    <td><small>${r.prompt_text.substring(0, 50)}...</small></td>
+                                    <td>
+                                        <span class="badge ${r.success ? 'bg-success' : 'bg-danger'}">
+                                            ${r.success ? 'Success' : 'Failed'}
+                                        </span>
+                                    </td>
+                                    <td>${r.image_count}</td>
+                                    <td><small>${r.generation_time?.toFixed(1)}s</small></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        resultsDiv.innerHTML = resultsHtml;
+    }
+
+    function showGenerationStats() {
+        // Could open a detailed stats modal
+        showAlert('Check the stats panel for generation statistics', 'info');
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 Page loaded, initializing...');
+        loadLayoutSettings();
+        loadProfiles(); // Load profiles when page loads
+        refreshScripts(); // Load scripts
+        refreshPromptFiles(); // Load prompt files
+        refreshGenerationStats(); // Load generation stats
+
+        // Load system profiles when import modal is opened
+        document.getElementById('importProfileModal').addEventListener('shown.bs.modal', function() {
+            refreshSystemProfiles();
+        });
+
+        // Update running profiles when script modal is opened
+        document.getElementById('scriptExecutionModal').addEventListener('shown.bs.modal', function() {
+            updateRunningProfiles();
+        });
+
+        // Update running profiles when AI generation modal is opened
+        document.getElementById('aiGenerationModal').addEventListener('shown.bs.modal', function() {
+            updateRunningProfilesForGeneration();
+            updateMultiProfileSelection();
+            updatePromptFileSelectsMulti();
+        });
+    });
+</script>
+{% endblock %}

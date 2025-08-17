@@ -1,0 +1,9 @@
+{
+  "prompt_id": "003",
+  "success": false,
+  "image_paths": null,
+  "generation_time": 4.7031402587890625,
+  "timestamp": "2025-08-17T22:26:10.953984",
+  "metadata": null,
+  "error": "Message: unknown error: net::ERR_CONNECTION_REFUSED\n  (Session info: chrome=139.0.7258.128)\nStacktrace:\n\tGetHandleVerifier [0x0x81fd33+62915]\n\tGetHandleVerifier [0x0x81fd74+62980]\n\t(No symbol) [0x0x653e13]\n\t(No symbol) [0x0x65153b]\n\t(No symbol) [0x0x644d02]\n\t(No symbol) [0x0x646738]\n\t(No symbol) [0x0x644f98]\n\t(No symbol) [0x0x644ad3]\n\t(No symbol) [0x0x6447e1]\n\t(No symbol) [0x0x642784]\n\t(No symbol) [0x0x64312b]\n\t(No symbol) [0x0x65782e]\n\t(No symbol) [0x0x6e32b7]\n\t(No symbol) [0x0x6c13dc]\n\t(No symbol) [0x0x6e26ea]\n\t(No symbol) [0x0x6c11d6]\n\t(No symbol) [0x0x690833]\n\t(No symbol) [0x0x6916a4]\n\tGetHandleVerifier [0x0xa88d23+2590131]\n\tGetHandleVerifier [0x0xa83f6a+2570234]\n\tGetHandleVerifier [0x0x8459ea+217722]\n\tGetHandleVerifier [0x0x836058+153832]\n\tGetHandleVerifier [0x0x83c4bd+179533]\n\tGetHandleVerifier [0x0x827738+94152]\n\tGetHandleVerifier [0x0x8278c2+94546]\n\tGetHandleVerifier [0x0x812bda+9322]\n\tBaseThreadInitThunk [0x0x77235d49+25]\n\tRtlInitializeExceptionChain [0x0x77ded2fb+107]\n\tRtlGetAppContainerNamedObjectPath [0x0x77ded281+561]\n"
+}

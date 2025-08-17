@@ -1,0 +1,25 @@
+{
+  "prompts": [
+    {
+      "id": "json_001",
+      "text": "A serene Japanese garden with cherry blossoms",
+      "category": "nature",
+      "priority": 1,
+      "parameters": {
+        "style": "traditional",
+        "season": "spring",
+        "mood": "peaceful"
+      }
+    },
+    {
+      "id": "json_002",
+      "text": "Steampunk airship flying through clouds",
+      "category": "steampunk",
+      "priority": 2,
+      "parameters": {
+        "style": "vintage",
+        "complexity": "detailed"
+      }
+    }
+  ]
+}

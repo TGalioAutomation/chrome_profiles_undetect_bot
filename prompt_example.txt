@@ -1,0 +1,39 @@
+# AI Image Generation Prompts - Stick Figure Character Series
+# Format: One prompt per line, lines starting with # are comments
+# Compatible with TXT, CSV, and JSON formats
+
+# Scene 1: YouTube Studio Introduction
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso waving enthusiastically at the camera with both stick arms raised. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. YouTube studio background with professional lighting equipment, camera gear, ring lights, potted plants, geometric patterns on walls, wooden desk with microphone, warm golden hour lighting.
+
+# Scene 2: Bathroom Mirror Reflection
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso standing in front of a bathroom mirror with a questioning expression, one stick finger on chin. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Modern bathroom with marble tiles, LED strip lighting under mirror, glass shower door, soap dispensers, hanging towels, small potted plants, hexagonal floor tiles, soft morning sunlight through frosted window.
+
+# Scene 3: Scientific Discovery
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso surrounded by floating DNA helixes and sparkles, looking amazed with wide dot eyes. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Scientific laboratory with microscopes, beakers, DNA models, scientific charts, periodic table posters, molecular displays, dramatic spotlight effects, geometric science patterns, lab equipment, cool blue ambient lighting.
+
+# Scene 4: Sci-Fi Adventure
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso in diving motion with arms extended forward into swirling science fiction elements. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Futuristic sci-fi environment with holographic displays, floating digital screens, metallic wall panels with circuit patterns, neon blue and purple lighting, space-age furniture, geometric tech patterns, robotic elements, dramatic backlighting.
+
+# Scene 5: Cosmic Exploration
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso floating in space with arms spread wide, surrounded by stars and planets. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Deep space background with colorful nebulae, distant galaxies, floating asteroids, cosmic dust, bright stars, planet rings, aurora effects, dramatic cosmic lighting with purple and blue hues.
+
+# Scene 6: Kitchen Cooking Adventure
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso wearing a chef's hat, holding a spatula with excited expression. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Modern kitchen with stainless steel appliances, marble countertops, hanging pots and pans, fresh ingredients scattered around, steam effects, warm yellow lighting, geometric tile backsplash.
+
+# Scene 7: Gaming Setup
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso sitting at a gaming desk with multiple monitors, wearing gaming headphones, hands on mechanical keyboard. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Gaming room with RGB lighting, LED strips, gaming chair, posters on walls, energy drink cans, snack packages, neon purple and blue ambient lighting.
+
+# Scene 8: Beach Vacation
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso relaxing on a beach chair under an umbrella, wearing sunglasses, holding a tropical drink. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Tropical beach with palm trees, crystal blue ocean, white sand, seashells, beach ball, surfboard, warm sunset lighting with orange and pink hues.
+
+# Scene 9: Mountain Hiking
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso standing on a mountain peak with arms raised in victory, wearing a backpack. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Mountain landscape with snow-capped peaks, pine trees, hiking trail, clouds below, dramatic sunrise lighting, geometric rock formations, fresh mountain air effects.
+
+# Scene 10: Art Studio Creation
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso holding a paintbrush, standing in front of an easel with a colorful painting. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Art studio with paint tubes, brushes, canvases, color palettes, artistic supplies scattered around, natural lighting from large windows, creative chaos atmosphere.
+
+# Scene 11: Coffee Shop Moment
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso sitting at a cafe table with a laptop, holding a coffee cup with steam rising. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Cozy coffee shop with wooden furniture, hanging plants, chalkboard menu, coffee machines, warm ambient lighting, geometric floor patterns.
+
+# Scene 12: Concert Performance
+Create a cartoon stick figure with a shiny bald round head, small black dot eyes, rosy cheeks, and very thin stick limbs and torso on stage holding a microphone, with stage lights and crowd silhouettes in background. 2D modern cartoon style similar to Cyanide & Happiness. Clean flat colors with simple black outlines. Concert venue with stage lights, speakers, crowd, dramatic spotlights, colorful stage effects, musical notes floating in air, energetic atmosphere.

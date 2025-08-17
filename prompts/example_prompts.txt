@@ -1,0 +1,8 @@
+# AI Image Generation Prompts
+# One prompt per line, lines starting with # are comments
+
+A beautiful sunset over mountains, photorealistic, 4K
+Cute cat wearing a wizard hat, digital art style
+Futuristic city skyline at night, cyberpunk aesthetic
+Portrait of a wise old wizard, fantasy art
+Abstract geometric patterns in blue and gold

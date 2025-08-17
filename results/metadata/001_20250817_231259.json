@@ -1,0 +1,9 @@
+{
+  "prompt_id": "001",
+  "success": false,
+  "image_paths": null,
+  "generation_time": 120.0112898349762,
+  "timestamp": "2025-08-17T23:12:59.817167",
+  "metadata": null,
+  "error": "HTTPConnectionPool(host='localhost', port=56300): Read timed out. (read timeout=120)"
+}

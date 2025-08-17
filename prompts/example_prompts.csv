@@ -1,0 +1,4 @@
+id,prompt,category,priority,parameters
+001,A majestic dragon flying over a castle,fantasy,1,"{""style"": ""realistic"", ""quality"": ""high""}"
+002,Modern minimalist living room interior,architecture,2,"{""style"": ""clean"", ""lighting"": ""natural""}"
+003,Portrait of a cyberpunk character,character,1,"{""style"": ""neon"", ""mood"": ""dark""}"

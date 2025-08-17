@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UI Test Simulation</title>
+</head>
+<body>
+    <h1>Test Create Profile Function</h1>
+    
+    <form id="createProfileForm">
+        <input type="text" id="profileName" value="test_ui_sim" required>
+        <select id="userAgent" required>
+            <option value="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36">Chrome 120</option>
+        </select>
+        <input type="text" id="displayName" value="Test UI Simulation">
+        <input type="text" id="proxy" value="">
+        <input type="number" id="windowWidth" value="1366">
+        <input type="number" id="windowHeight" value="768">
+        <input type="checkbox" id="headless">
+        <textarea id="customOptions"></textarea>
+        <textarea id="notes">Test from UI simulation</textarea>
+    </form>
+    
+    <button onclick="testCreateProfile()">Test Create Profile</button>
+    
+    <script>
+        async function testCreateProfile() {
+            console.log('🚀 testCreateProfile function called');
+            
+            try {
+                const form = document.getElementById('createProfileForm');
+                console.log('📋 Form element:', form);
+                
+                const profileName = document.getElementById('profileName');
+                const userAgentSelect = document.getElementById('userAgent');
+                
+                console.log('📝 Profile name element:', profileName);
+                console.log('📝 User agent element:', userAgentSelect);
+                console.log('📝 Profile name value:', profileName?.value);
+                console.log('📝 User agent value:', userAgentSelect?.value);
+                
+                const userAgent = document.getElementById('userAgent').value === 'custom' 
+                    ? document.getElementById('customUserAgent').value
+                    : document.getElementById('userAgent').value;
+                
+                console.log('🔍 Selected user agent:', userAgent);
+                
+                const customOptions = document.getElementById('customOptions').value
+                    .split('\n')
+                    .map(opt => opt.trim())
+                    .filter(opt => opt.length > 0);
+                
+                const profileData = {
+                    name: document.getElementById('profileName').value.trim(),
+                    display_name: document.getElementById('displayName').value.trim() || document.getElementById('profileName').value.trim(),
+                    user_agent: userAgent.trim(),
+                    proxy: document.getElementById('proxy').value.trim() || null,
+                    window_size: [
+                        parseInt(document.getElementById('windowWidth').value) || 1920,
+                        parseInt(document.getElementById('windowHeight').value) || 1080
+                    ],
+                    headless: document.getElementById('headless').checked,
+                    custom_options: customOptions,
+                    notes: document.getElementById('notes').value.trim()
+                };
+                
+                console.log('📊 Profile data:', profileData);
+                console.log('📊 JSON string:', JSON.stringify(profileData));
+                
+                const response = await fetch('http://127.0.0.1:5000/api/profiles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                
+                console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', response.headers);
+                
+                const data = await response.json();
+                console.log('📄 Response data:', data);
+                
+                if (data.success) {
+                    alert('✅ Success: ' + data.message);
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('❌ Exception: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
