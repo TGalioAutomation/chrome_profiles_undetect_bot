@@ -34,6 +34,7 @@ class ChromeProfile:
     status: ProfileStatus = ProfileStatus.INACTIVE
     custom_options: List[str] = None
     notes: str = ""
+    profile_path: Optional[str] = None  # Custom profile path (for imported profiles)
     # Gmail account fields
     gmail_email: Optional[str] = None
     gmail_password: Optional[str] = None
@@ -83,9 +84,18 @@ class ProfileManager:
                     gmail_recovery_email TEXT,
                     gmail_phone TEXT,
                     gmail_2fa_secret TEXT,
-                    gmail_auto_login BOOLEAN DEFAULT FALSE
+                    gmail_auto_login BOOLEAN DEFAULT FALSE,
+                    profile_path TEXT
                 )
             ''')
+
+            # Add profile_path column if it doesn't exist (migration)
+            try:
+                cursor.execute('ALTER TABLE profiles ADD COLUMN profile_path TEXT')
+                print("✅ Added profile_path column to database")
+            except sqlite3.OperationalError:
+                # Column already exists
+                pass
             
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS profile_sessions (
@@ -185,18 +195,31 @@ class ProfileManager:
     
     def _save_profile_metadata(self, profile: ChromeProfile):
         """Save profile metadata to JSON file"""
-        profile_path = PROFILES_DIR / profile.name
-        metadata_file = profile_path / "metadata.json"
-        
         try:
+            # Determine where to save metadata
+            if profile.profile_path and os.path.exists(profile.profile_path):
+                # For direct path profiles, save metadata in tool's metadata directory
+                metadata_dir = Path("metadata")
+                metadata_dir.mkdir(exist_ok=True)
+                metadata_file = metadata_dir / f"{profile.name}.json"
+                print(f"💾 Saving metadata for direct path profile: {metadata_file}")
+            else:
+                # For managed profiles, save in profile directory
+                profile_path = PROFILES_DIR / profile.name
+                profile_path.mkdir(exist_ok=True)  # Ensure directory exists
+                metadata_file = profile_path / "metadata.json"
+                print(f"💾 Saving metadata for managed profile: {metadata_file}")
+
             metadata = asdict(profile)
             metadata['status'] = profile.status.value
-            
+
             with open(metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
-                
+
+            print(f"✅ Profile metadata saved successfully")
+
         except Exception as e:
-            print(f"Error saving profile metadata: {e}")
+            print(f"❌ Error saving profile metadata: {e}")
     
     def get_profile(self, name: str) -> Optional[ChromeProfile]:
         """Get profile by name"""
@@ -220,7 +243,14 @@ class ProfileManager:
                     last_used=row[8],
                     status=ProfileStatus(row[9]),
                     custom_options=json.loads(row[10]) if row[10] else [],
-                    notes=row[11] or ""
+                    notes=row[11] or "",
+                    gmail_email=row[12],
+                    gmail_password=row[13],
+                    gmail_recovery_email=row[14],
+                    gmail_phone=row[15],
+                    gmail_2fa_secret=row[16],
+                    gmail_auto_login=bool(row[17]) if row[17] is not None else False,
+                    profile_path=row[18] if len(row) > 18 else None
                 )
             
             return None
@@ -252,7 +282,14 @@ class ProfileManager:
                     last_used=row[8],
                     status=ProfileStatus(row[9]),
                     custom_options=json.loads(row[10]) if row[10] else [],
-                    notes=row[11] or ""
+                    notes=row[11] or "",
+                    gmail_email=row[12],
+                    gmail_password=row[13],
+                    gmail_recovery_email=row[14],
+                    gmail_phone=row[15],
+                    gmail_2fa_secret=row[16],
+                    gmail_auto_login=bool(row[17]) if row[17] is not None else False,
+                    profile_path=row[18] if len(row) > 18 else None
                 )
                 profiles.append(profile)
             
@@ -464,13 +501,14 @@ class ProfileManager:
             pass
         return total_size
 
-    def import_chrome_profile(self, source_path: str, profile_name: str, display_name: str = None) -> bool:
-        """Import existing Chrome profile"""
+    def import_chrome_profile(self, source_path: str, profile_name: str, display_name: str = None, use_direct_path: bool = True) -> bool:
+        """Import existing Chrome profile - either copy or use direct path"""
         try:
             print(f"🔍 Starting import process...")
             print(f"   Source: {source_path}")
             print(f"   Profile name: {profile_name}")
             print(f"   Display name: {display_name}")
+            print(f"   Use direct path: {use_direct_path}")
 
             # Validate inputs
             if not source_path or not profile_name:
@@ -493,26 +531,42 @@ class ProfileManager:
             if not profile_name.replace('_', '').replace('-', '').isalnum():
                 raise ValueError("Profile name can only contain letters, numbers, hyphens, and underscores")
 
-            # Create destination path
-            dest_path = PROFILES_DIR / profile_name
+            if use_direct_path:
+                # Use direct path - no copying needed
+                print(f"📁 Using direct path to Chrome profile: {source_path}")
+                profile_path = source_path
+                notes = f"Direct link to system Chrome profile: {source_path}"
+            else:
+                # Copy profile to managed directory
+                dest_path = PROFILES_DIR / profile_name
+                print(f"📥 Copying Chrome profile from {source_path} to {dest_path}")
 
-            print(f"📥 Importing Chrome profile from {source_path} to {dest_path}")
+                # Ensure PROFILES_DIR exists
+                PROFILES_DIR.mkdir(exist_ok=True)
 
-            # Ensure PROFILES_DIR exists
-            PROFILES_DIR.mkdir(exist_ok=True)
+                # Remove destination if exists
+                if dest_path.exists():
+                    print(f"🗑️ Removing existing destination: {dest_path}")
+                    try:
+                        self._remove_directory_with_retry(dest_path)
+                    except Exception as remove_error:
+                        # Generate unique name if removal fails
+                        import time
+                        timestamp = int(time.time())
+                        profile_name = f"{profile_name}_{timestamp}"
+                        dest_path = PROFILES_DIR / profile_name
+                        print(f"📝 New profile name: {profile_name}")
 
-            # Remove destination if exists
-            if dest_path.exists():
-                print(f"🗑️ Removing existing destination: {dest_path}")
-                shutil.rmtree(dest_path)
+                # Copy profile directory
+                print(f"📂 Copying profile directory...")
+                try:
+                    shutil.copytree(source_path, dest_path)
+                    print(f"✅ Profile directory copied successfully")
+                except Exception as copy_error:
+                    raise ValueError(f"Failed to copy profile directory: {str(copy_error)}")
 
-            # Copy profile directory with detailed logging
-            print(f"📂 Copying profile directory...")
-            try:
-                shutil.copytree(source_path, dest_path)
-                print(f"✅ Profile directory copied successfully")
-            except Exception as copy_error:
-                raise ValueError(f"Failed to copy profile directory: {str(copy_error)}")
+                profile_path = str(dest_path)
+                notes = f"Copied from system Chrome profile: {source_path}"
 
             # Create profile entry in database
             print(f"💾 Creating database entry...")
@@ -524,12 +578,13 @@ class ProfileManager:
                 name=profile_name,
                 display_name=display_name or profile_name,
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                notes=f"Imported from system Chrome profile: {source_path}",
+                notes=notes,
                 created_at=created_at,
-                custom_options=[]
+                custom_options=[],
+                profile_path=profile_path
             )
 
-            # Save to database with detailed error handling
+            # Save to database with profile path
             try:
                 conn = sqlite3.connect(self.db_path)
                 cursor = conn.cursor()
@@ -540,10 +595,11 @@ class ProfileManager:
                     INSERT INTO profiles (
                         name, display_name, user_agent, proxy,
                         window_width, window_height, headless,
-                        created_at, status, custom_options, notes,
+                        created_at, last_used, status, custom_options, notes,
                         gmail_email, gmail_password, gmail_recovery_email,
-                        gmail_phone, gmail_2fa_secret, gmail_auto_login
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        gmail_phone, gmail_2fa_secret, gmail_auto_login,
+                        profile_path
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     profile.name,
                     profile.display_name,
@@ -553,6 +609,7 @@ class ProfileManager:
                     profile.window_size[1],
                     profile.headless,
                     profile.created_at,
+                    profile.last_used,  # Add missing last_used
                     profile.status.value,
                     json.dumps(profile.custom_options or []),
                     profile.notes,
@@ -561,7 +618,8 @@ class ProfileManager:
                     profile.gmail_recovery_email,
                     profile.gmail_phone,
                     profile.gmail_2fa_secret,
-                    profile.gmail_auto_login
+                    profile.gmail_auto_login,
+                    profile_path
                 ))
 
                 conn.commit()
@@ -579,6 +637,56 @@ class ProfileManager:
         except Exception as e:
             print(f"❌ Error importing profile: {e}")
             return False
+
+    def _remove_directory_with_retry(self, directory_path: Path, max_retries: int = 3):
+        """Remove directory with retry mechanism for locked files"""
+        import time
+
+        for attempt in range(max_retries):
+            try:
+                print(f"🔄 Removal attempt {attempt + 1}/{max_retries}")
+
+                # Try to make all files writable first
+                self._make_directory_writable(directory_path)
+
+                # Remove directory
+                shutil.rmtree(directory_path)
+                print(f"✅ Directory removed successfully")
+                return
+
+            except Exception as e:
+                print(f"❌ Attempt {attempt + 1} failed: {e}")
+
+                if attempt < max_retries - 1:
+                    print(f"⏳ Waiting 2 seconds before retry...")
+                    time.sleep(2)
+                else:
+                    raise e
+
+    def _make_directory_writable(self, directory_path: Path):
+        """Make all files in directory writable"""
+        import stat
+
+        try:
+            for root, dirs, files in os.walk(directory_path):
+                # Make directories writable
+                for dir_name in dirs:
+                    dir_path = os.path.join(root, dir_name)
+                    try:
+                        os.chmod(dir_path, stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC)
+                    except:
+                        pass
+
+                # Make files writable
+                for file_name in files:
+                    file_path = os.path.join(root, file_name)
+                    try:
+                        os.chmod(file_path, stat.S_IWRITE | stat.S_IREAD)
+                    except:
+                        pass
+
+        except Exception as e:
+            print(f"⚠️ Warning: Could not make directory writable: {e}")
     
     def profile_exists(self, name: str) -> bool:
         """Check if profile exists"""

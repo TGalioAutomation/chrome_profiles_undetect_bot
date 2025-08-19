@@ -29,9 +29,9 @@ class ChromeDriverManager:
     Advanced Chrome Driver Manager with bot detection bypass capabilities
     """
     
-    def __init__(self, profile_name: str = "default"):
+    def __init__(self, profile_name: str = "default", profile_manager=None):
         self.profile_name = profile_name
-        self.profile_path = PROFILES_DIR / profile_name
+        self.profile_manager = profile_manager
         self.driver: Optional[webdriver.Chrome] = None
         self.ua = UserAgent()
         self.gmail_manager = None
@@ -39,8 +39,15 @@ class ChromeDriverManager:
         self.prompt_manager = PromptManager()
         self.thread_id = None  # For multi-threading identification
 
-        # Create profile directory if it doesn't exist
-        self.profile_path.mkdir(exist_ok=True)
+        # Get profile path from database or use default
+        self.profile_path = self._get_profile_path()
+
+        # Create profile directory if it doesn't exist (for new profiles)
+        if not self.profile_path.exists():
+            self.profile_path.mkdir(parents=True, exist_ok=True)
+
+        # Detect profile type
+        self.is_imported_user_data = self._is_imported_user_data_directory()
         
     def _get_random_user_agent(self) -> str:
         """Get a random user agent from pool or generate one"""
@@ -65,16 +72,32 @@ class ChromeDriverManager:
         for option in DEFAULT_CHROME_OPTIONS:
             options.add_argument(option)
         
-        # Profile settings - use imported profile structure
-        if not skip_user_data_dir:
+        # Profile settings - handle different profile types
+        profile_type = self._detect_profile_type()
+
+        if profile_type == "user_data_dir":
+            # This is a Chrome User Data directory (contains multiple profiles)
+            print(f"📁 Using Chrome User Data directory")
+            options.add_argument(f"--user-data-dir={self.profile_path}")
+            options.add_argument("--profile-directory=Default")
+
+        elif profile_type == "single_profile":
+            # This is a single Chrome profile directory (Profile 1, Profile 2, etc.)
+            print(f"📁 Using single Chrome profile directory")
+            # For single profile, use parent as user-data-dir and profile name as directory
+            parent_dir = self.profile_path.parent
+            profile_name = self.profile_path.name
+            options.add_argument(f"--user-data-dir={parent_dir}")
+            options.add_argument(f"--profile-directory={profile_name}")
+
+        else:
+            # This is a managed profile directory
+            print(f"📁 Using managed profile directory")
             options.add_argument(f"--user-data-dir={self.profile_path}")
 
-            # Check if this is an imported profile (has Default subdirectory)
+            # Create Default directory structure for new profiles
             default_profile_path = self.profile_path / "Default"
-            if default_profile_path.exists():
-                options.add_argument("--profile-directory=Default")
-            else:
-                # For new profiles, create Default directory structure
+            if not default_profile_path.exists():
                 default_profile_path.mkdir(exist_ok=True)
         
         # Window settings
@@ -281,11 +304,19 @@ class ChromeDriverManager:
                         skip_user_data_dir=True  # Skip user-data-dir for undetected
                     )
 
-                    self.driver = uc.Chrome(
-                        options=uc_options,
-                        version_main=None,
-                        user_data_dir=str(self.profile_path)  # Let undetected handle this
-                    )
+                    if self.is_imported_user_data:
+                        # For imported User Data directory, let undetected-chrome handle it
+                        self.driver = uc.Chrome(
+                            options=uc_options,
+                            version_main=None,
+                            user_data_dir=str(self.profile_path)
+                        )
+                    else:
+                        # For single profile, use regular options
+                        self.driver = uc.Chrome(
+                            options=options,
+                            version_main=None
+                        )
                     print(f"✅ Undetected Chrome started successfully")
 
                 except Exception as e:
@@ -678,6 +709,87 @@ class ChromeDriverManager:
         except Exception:
             pass
         return total_size
+
+    def _is_imported_user_data_directory(self) -> bool:
+        """Check if this is an imported Chrome User Data directory"""
+        try:
+            # Check for Chrome User Data directory indicators
+            indicators = [
+                "Local State",      # Chrome's local state file
+                "Default",          # Default profile directory
+                "First Run",        # First run indicator
+                "chrome_shutdown_ms.txt"  # Chrome shutdown file
+            ]
+
+            found_indicators = 0
+            for indicator in indicators:
+                if (self.profile_path / indicator).exists():
+                    found_indicators += 1
+
+            # If we find at least 2 indicators, it's likely a User Data directory
+            is_user_data = found_indicators >= 2
+
+            print(f"🔍 Profile type detection:")
+            print(f"   Path: {self.profile_path}")
+            print(f"   Found indicators: {found_indicators}/4")
+            print(f"   Is User Data directory: {is_user_data}")
+
+            return is_user_data
+
+        except Exception as e:
+            print(f"⚠️ Error detecting profile type: {e}")
+            return False
+
+    def _get_profile_path(self) -> Path:
+        """Get profile path from database or use default"""
+        try:
+            if self.profile_manager:
+                # Try to get profile from database
+                profile = self.profile_manager.get_profile(self.profile_name)
+                if profile and hasattr(profile, 'profile_path') and profile.profile_path:
+                    print(f"📁 Using database profile path: {profile.profile_path}")
+                    return Path(profile.profile_path)
+
+            # Fallback to default path
+            default_path = PROFILES_DIR / self.profile_name
+            print(f"📁 Using default profile path: {default_path}")
+            return default_path
+
+        except Exception as e:
+            print(f"⚠️ Error getting profile path: {e}")
+            # Fallback to default
+            return PROFILES_DIR / self.profile_name
+
+    def _detect_profile_type(self) -> str:
+        """Detect the type of profile directory"""
+        try:
+            path = self.profile_path
+
+            # Check if this is a Chrome User Data directory
+            # (contains Local State, Default directory, etc.)
+            if (path / "Local State").exists() and (path / "Default").exists():
+                print(f"🔍 Detected: Chrome User Data directory")
+                return "user_data_dir"
+
+            # Check if this is a single Chrome profile directory
+            # (Profile 1, Profile 2, Default, etc. - contains Preferences, Cookies, etc.)
+            if (path / "Preferences").exists() or (path / "Cookies").exists():
+                print(f"🔍 Detected: Single Chrome profile directory")
+                return "single_profile"
+
+            # Check if parent directory looks like Chrome User Data
+            parent = path.parent
+            if (parent / "Local State").exists() and path.name.startswith(("Profile", "Default")):
+                print(f"🔍 Detected: Single Chrome profile directory (by parent)")
+                return "single_profile"
+
+            # Default to managed profile
+            print(f"🔍 Detected: Managed profile directory")
+            return "managed_profile"
+
+        except Exception as e:
+            print(f"⚠️ Error detecting profile type: {e}")
+            return "managed_profile"
 
     def quit_driver(self):
         """Safely quit the driver"""

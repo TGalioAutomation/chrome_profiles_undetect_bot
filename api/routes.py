@@ -466,11 +466,13 @@ class BrowserAPI:
                 source_path = data.get('source_path')
                 profile_name = data.get('profile_name')
                 display_name = data.get('display_name')
+                use_direct_path = data.get('use_direct_path', True)  # Default to direct path
 
                 print(f"📝 Import parameters:")
                 print(f"   Source path: {source_path}")
                 print(f"   Profile name: {profile_name}")
                 print(f"   Display name: {display_name}")
+                print(f"   Use direct path: {use_direct_path}")
 
                 if not source_path or not profile_name:
                     error_msg = 'source_path and profile_name are required'
@@ -485,7 +487,8 @@ class BrowserAPI:
                 success = self.profile_manager.import_chrome_profile(
                     source_path=source_path,
                     profile_name=profile_name,
-                    display_name=display_name
+                    display_name=display_name,
+                    use_direct_path=use_direct_path
                 )
 
                 if success:
@@ -977,7 +980,7 @@ class BrowserAPI:
         """Start browser in background thread"""
         try:
             # Create driver manager
-            driver_manager = ChromeDriverManager(profile_name)
+            driver_manager = ChromeDriverManager(profile_name, self.profile_manager)
             
             # Start driver with profile settings
             driver = driver_manager.start_driver(
